@@ -1,0 +1,220 @@
+;=====================================================================
+; Print text sideways to use increased resolution to create more
+; columns of text albeit sideways.
+;---------------------------------------------------------------------
+; Requires 8k+ memory
+;---------------------------------------------------------------------
+; Copyright (C) 2021 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under an MIT licence.  Please see LICENCE.md for details.
+;=====================================================================
+
+; Configuration
+SNUMCOL     = 64              ; Side number of text columns
+SNUMROW     = 16              ; Side number of text rows
+RVTVORIGIN  = 20              ; Vertical TV picture origin
+
+; Calculated dimensions
+RNUMCOL     = SNUMROW         ; Real number of text columns
+RNUMROW     = SNUMCOL/2       ; Real number of text rows
+SLENPX      = RNUMROW*4       ; Side number of pixels
+
+
+; VIC Registers
+VICCR1      = $9001           ; Vertical TV picture origin
+VICCR2      = $9002           ; Number of columns, part of screen address
+VICCR3      = $9003           ; Number of rows, raster location, char size
+VICCR5      = $9005           ; Screen map and character map address
+
+; Zero Page Variables
+CHRADDR     = $01             ; 16-bit character map address
+                              ; used for calculations
+SCRADDR     = $05             ; 16-bit screen map address
+COLADDR     = $07             ; 16-bit colour map address
+
+            .byt  $00, $18    ; Load address ($1800 / 6144)
+
+            * = $1800
+main        jsr  cfgScr       ; Configure screen
+            jsr  initClr      ; Init the colour map
+            jsr  initScr      ; Init the screen
+            jsr  clrScr       ; Init character definitions
+            ldx  #01
+            ldy  #00
+            jsr  putch
+            ldx  #02
+            ldy  #00
+            jsr  putch
+            ldx  #03
+            ldy  #00
+            jsr  putch
+forever     jmp  forever
+            rts
+
+            ; Configure screen
+cfgScr      lda  #RVTVORIGIN
+            sta  VICCR1       ; Set vertical TV origin
+            lda  #RNUMCOL
+            sta  VICCR2       ; Set number of columns displayed
+            lda  #((RNUMROW*2))
+            sta  VICCR3       ; Set number of rows displayed
+            ; TODO Consider putting character map before screen map in memory
+            lda  #(192|13)    ; Set Screen and character map addresses
+                              ; to $1000 and $1400
+            sta  VICCR5
+            rts
+
+            ; Init the colour map to all a single colour
+initClr     .(
+            lda  #<((16*32)+$93FF)    ; End of colour map beginning $9400
+            sta  COLADDR              ; |
+            lda  #>((16*32)+$93FF)    ; |
+            sta  COLADDR+1            ; /
+            ldy  #00
+
+loop        lda  #$00                 ; Black forground colour
+            sta  (COLADDR),y          ; Init colour map
+
+            ; Decrement address
+            lda  COLADDR               ; lsb
+            bne  decLo
+            dec  COLADDR+1             ; msb
+decLo       dec  COLADDR               ; lsb
+
+            lda  COLADDR+1
+            cmp  #>$9400
+            bne  loop
+            lda  COLADDR
+            bne  loop
+
+            ; TODO Find neater way of doing whole loop
+            lda  #$00         ; Black foreground colour
+            sta  $9400        ; Init colour map first location
+            rts
+.)
+
+
+            ; Fill screen map with characters needed
+initScr     .(
+            lda  #$0F         ; Init screen address to $1000
+            sta  SCRADDR      ; |
+            lda  #$10         ; |
+            sta  SCRADDR+1    ; /
+            lda  #00          ; The character to output
+            ldx  #30          ; The number of rows
+            ldy  #00
+
+loop        sta  (SCRADDR), y    ; Store chracter in screen map
+            clc
+            adc  #01
+            pha
+
+            ; Calc next row address
+            clc
+            lda  SCRADDR      ; lsb
+            adc  #$10
+            sta  SCRADDR      ; lsb
+            bcc  addDone
+            inc  SCRADDR+1    ; msb
+
+addDone     pla
+            dex
+            bne  loop
+            rts
+.)
+
+            ; Clear the screen by zeroing the character map
+clrScr      .(
+            lda  #$00
+            ldx  #$FF
+loop        sta  $1400,x      ; Set character map location
+            dex
+            bne  loop
+            ; TODO Find neater way of doing whole loop
+            sta  $1400
+            rts
+.)
+
+
+            ; ACC - character to print
+            ;   X - Column on simulated screen
+            ;   Y - Row on simulated screen
+putch       .(
+            pha               ; Push character to stack
+            lda  #$00         ; Zero CHRADDR
+            sta  CHRADDR      ; |
+            lda  #$00         ; |
+            sta  CHRADDR+1    ; /
+            txa
+            pha               ; Push column to stack
+
+            ; Find location of simulated column pair
+findCol     lsr               ; Half the column
+            sta  CHRADDR      ; lsb
+
+            ; Find location of simulated row
+findRow     cpy  #00
+            beq  mul8
+            ; Add number of real rows to address
+            clc
+            lda  CHRADDR      ; lsb
+            adc  #RNUMROW
+            sta  CHRADDR      ; lsb
+            bcc  addDone1
+            inc  CHRADDR+1    ; msb
+addDone1    dey
+            jmp  findRow
+
+
+mul8        ; TODO find better name
+
+            ; Multiply by 8 to find location of character
+            ; TODO can I ASL/ROL directly on addresses?
+            ldx  #3           ; Shift left 3 times to multiply by 8
+loop2       lda  CHRADDR      ; lsb
+            asl
+            sta  CHRADDR      ; lsb
+            lda  CHRADDR+1    ; msb
+            rol               ; Rotate with carry
+            sta  CHRADDR+1    ; msb
+            dex
+            bne  loop2
+
+            ; Add $1400 as address of character map
+            clc
+            lda  CHRADDR+1    ; msb
+            adc  #$14
+            sta  CHRADDR+1    ; lsb
+
+            ; Find if odd/even simulated column
+            pla
+            lsr
+            bcc copyCh        ; If even
+
+            ; Odd number so add 4
+            clc
+            lda  CHRADDR      ; lsb
+            adc  #$04
+            sta  CHRADDR      ; lsb
+            bcc  addDone3
+            inc  CHRADDR+1    ; msb
+addDone3
+
+; This is all wrong because the location should be 1404 as that is where @ is
+
+            ; Copy the character to the screen
+copyCh      pla
+            ldy  #4
+loop3       lda  chA,y
+            sta  (CHRADDR),y
+            dey
+            bne  loop3
+            rts
+.)
+
+;---------------------------------------------------
+;  4x5 font defintions
+;---------------------------------------------------
+
+fontDef
+chA        .byt  $00,$7E,$09,$7E
+chB        .byt  $00,$7F,$49,$3E
