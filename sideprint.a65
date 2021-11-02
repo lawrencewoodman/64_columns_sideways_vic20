@@ -262,10 +262,4 @@ copyLoop    lda  (CHDEFADDR),y
             rts
 .)
 
-;---------------------------------------------------
-;  4x8 font defintions
-;---------------------------------------------------
-
-fontDef
-chA        .byt  $00,$7E,$09,$7E
-chB        .byt  $00,$7F,$49,$3E
+#include "fontdef.inc"        ; The font definitions
