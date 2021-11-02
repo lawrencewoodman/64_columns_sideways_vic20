@@ -25,19 +25,22 @@ VICCR2      = $9002           ; Number of columns, part of screen address
 VICCR3      = $9003           ; Number of rows, raster location, char size
 VICCR5      = $9005           ; Screen map and character map address
 
-; Zero Page Variables
+; TODO Constants for character map, screen address, etc
+
+; Zero Page Variable Locations
 CHRADDR     = $01             ; 16-bit character map address
                               ; used for calculations
+COLOFF      = $03             ; 8-bit column offset
 SCRADDR     = $05             ; 16-bit screen map address
 COLADDR     = $07             ; 16-bit colour map address
 
-            .byt  $00, $18    ; Load address ($1800 / 6144)
+            .byt  $00, $1C    ; Load address ($1C00 / 7168)
 
-            * = $1800
+            * = $1C00
 main        jsr  cfgScr       ; Configure screen
             jsr  initClr      ; Init the colour map
             jsr  initScr      ; Init the screen
-            jsr  clrScr       ; Init character definitions
+            jsr  clrChMap     ; Clear character map
             ldx  #01
             ldy  #00
             jsr  putch
@@ -46,6 +49,12 @@ main        jsr  cfgScr       ; Configure screen
             jsr  putch
             ldx  #03
             ldy  #00
+            jsr  putch
+            ldx  #10
+            ldy  #01
+            jsr  putch
+            ldx  #63
+            ldy  #07
             jsr  putch
 forever     jmp  forever
             rts
@@ -96,14 +105,15 @@ decLo       dec  COLADDR               ; lsb
             ; Fill screen map with characters needed
 initScr     .(
             lda  #$0F         ; Init screen address to $1000
+            sta  COLOFF       ; |   Store column offset
             sta  SCRADDR      ; |
             lda  #$10         ; |
             sta  SCRADDR+1    ; /
             lda  #00          ; The character to output
-            ldx  #30          ; The number of rows
             ldy  #00
 
-loop        sta  (SCRADDR), y    ; Store chracter in screen map
+colLoop     ldx  #32            ; The number of rows
+rowLoop     sta  (SCRADDR), y   ; Store character in screen map
             clc
             adc  #01
             pha
@@ -118,19 +128,38 @@ loop        sta  (SCRADDR), y    ; Store chracter in screen map
 
 addDone     pla
             dex
-            bne  loop
+            bne  rowLoop
+
+            pha
+            dec  COLOFF       ; Move to next column / simulated row
+            lda  COLOFF
+            cmp  #07
+            beq  done
+            sta  SCRADDR      ; Set screen address to next column
+            lda  #$10         ; |
+            sta  SCRADDR+1    ; /
+            pla
+            jmp  colLoop
+
+done        pla
             rts
 .)
 
             ; Clear the screen by zeroing the character map
-clrScr      .(
+clrChMap    .(
             lda  #$00
-            ldx  #$FF
-loop        sta  $1400,x      ; Set character map location
-            dex
+            sta  CHRADDR
+            lda  #$14
+            sta  CHRADDR+1
+            ldy  #00
+loop        lda  #00
+            sta  (CHRADDR),y      ; Set character map location
+            inc  CHRADDR          ; Increment CHRADDR
+            bne  doneInc          ; |
+            inc  CHRADDR+1        ; /
+doneInc     lda  CHRADDR+1
+            cmp  #$1C
             bne  loop
-            ; TODO Find neater way of doing whole loop
-            sta  $1400
             rts
 .)
 
