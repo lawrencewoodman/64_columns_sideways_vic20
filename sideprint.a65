@@ -33,6 +33,7 @@ CHRADDR     = $01             ; 16-bit character map address
 COLOFF      = $03             ; 8-bit column offset
 SCRADDR     = $05             ; 16-bit screen map address
 COLADDR     = $07             ; 16-bit colour map address
+CHDEFADDR   = $09             ; 16-bit character def address
 
             .byt  $00, $1C    ; Load address ($1C00 / 7168)
 
@@ -41,18 +42,23 @@ main        jsr  cfgScr       ; Configure screen
             jsr  initClr      ; Init the colour map
             jsr  initScr      ; Init the screen
             jsr  clrChMap     ; Clear character map
+            lda  #00
             ldx  #01
             ldy  #00
             jsr  putch
+            lda  #01
             ldx  #02
             ldy  #00
             jsr  putch
+            lda  #00
             ldx  #03
             ldy  #00
             jsr  putch
+            lda  #00
             ldx  #10
             ldy  #01
             jsr  putch
+            lda  #01
             ldx  #63
             ldy  #07
             jsr  putch
@@ -163,7 +169,9 @@ doneInc     lda  CHRADDR+1
             rts
 .)
 
-
+            ;----------------------------------------
+            ; putch - Print a character to screen
+            ;----------------------------------------
             ; ACC - character to print
             ;   X - Column on simulated screen
             ;   Y - Row on simulated screen
@@ -215,7 +223,7 @@ loop2       lda  CHRADDR      ; lsb
             sta  CHRADDR+1    ; lsb
 
             ; Find if odd/even simulated column
-            pla
+            pla               ; Pull column off stack
             lsr
             bcc copyCh        ; If even
 
@@ -228,20 +236,34 @@ loop2       lda  CHRADDR      ; lsb
             inc  CHRADDR+1    ; msb
 addDone3
 
-; This is all wrong because the location should be 1404 as that is where @ is
-
             ; Copy the character to the screen
-copyCh      pla
+copyCh      lda  #00
+            sta  CHDEFADDR+1
+            pla
+            sta  CHDEFADDR    ; Multiply character by 4
+            asl  CHDEFADDR    ; |
+            rol  CHDEFADDR+1  ; |
+            asl  CHDEFADDR    ; |
+            rol  CHDEFADDR+1  ; /
+
+            clc
+            lda  CHDEFADDR
+            adc  #<fontDef     ; lsb
+            sta  CHDEFADDR
+            lda  CHDEFADDR+1
+            adc  #>fontDef     ; msb
+            sta  CHDEFADDR+1
+
             ldy  #4
-loop3       lda  chA,y
+copyLoop    lda  (CHDEFADDR),y
             sta  (CHRADDR),y
             dey
-            bne  loop3
+            bne  copyLoop
             rts
 .)
 
 ;---------------------------------------------------
-;  4x5 font defintions
+;  4x8 font defintions
 ;---------------------------------------------------
 
 fontDef
