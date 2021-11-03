@@ -12,11 +12,13 @@
 SNUMCOL     = 64              ; Side number of text columns
 SNUMROW     = 16              ; Side number of text rows
 RVTVORIGIN  = 20              ; Vertical TV picture origin
+NLCHR       = $0A             ; Newline character
 
 ; Calculated dimensions
 RNUMCOL     = SNUMROW         ; Real number of text columns
 RNUMROW     = SNUMCOL/2       ; Real number of text rows
 SLENPX      = RNUMROW*4       ; Side number of pixels
+LSTSCOL     = SNUMCOL-1       ; Last simulated column
 
 
 ; VIC Registers
@@ -34,55 +36,33 @@ COLOFF      = $03             ; 8-bit column offset
 SCRADDR     = $05             ; 16-bit screen map address
 COLADDR     = $07             ; 16-bit colour map address
 CHDEFADDR   = $09             ; 16-bit character def address
+CRX         = $0B             ; Cursor x position on simulated screen
+CRY         = $0C             ; Cursor y position on simulated screen
+
 
             .byt  $00, $1C    ; Load address ($1C00 / 7168)
 
             * = $1C00
-main        jsr  cfgScr       ; Configure screen
+main        lda  #00          ; Init cursor to top left of screen
+            sta  CRX          ; |
+            sta  CRY          ; /
+
+            jsr  cfgScr       ; Configure screen
             jsr  initClr      ; Init the colour map
             jsr  initScr      ; Init the screen
             jsr  clrChMap     ; Clear character map
-            lda  #00
-            ldx  #01
-            ldy  #00
-            jsr  putch
-            lda  #01
-            ldx  #02
-            ldy  #00
-            jsr  putch
-            lda  #02
-            ldx  #03
-            ldy  #00
-            jsr  putch
-            lda  #03
-            ldx  #10
-            ldy  #01
-            jsr  putch
-            lda  #01
-            ldx  #63
-            ldy  #07
+
+            lda  #10
+            sta  CRX
+            lda  #05
+            sta  CRY
+            jsr  printAZ
+            lda  #NLCHR
             jsr  putch
             jsr  printAZ
 forever     jmp  forever
             rts
 
-
-            ; Print characters A-Z
-printAZ     .(
-            ldx  #00
-
-loop        txa
-            pha
-            ldy  #01
-            jsr  putch
-            pla
-            tax
-            inx
-            txa
-            cmp  #63
-            bne  loop
-            rts
-.)
 
             ; Configure screen
 cfgScr      lda  #RVTVORIGIN
@@ -188,13 +168,66 @@ doneInc     lda  CHRADDR+1
             rts
 .)
 
-            ;----------------------------------------
-            ; putch - Print a character to screen
-            ;----------------------------------------
+
+            ; Print characters A-Z
+printAZ     .(
+            lda  #32
+loop        pha
+            jsr  putch
+            pla
+            tax
+            inx
+            txa
+            cmp  #96
+            bne  loop
+            rts
+.)
+
+
+            ;-----------------------------------------
+            ; putch
+            ; Print a character to screen at cursor
+            ; and move cursor
+            ;-----------------------------------------
+            ; ACC - character to print
+            ;-----------------------------------------
+putch       .(
+            cmp  #NLCHR
+            beq  newline      ; If newline character
+
+printCh     pha
+            lda  CRX
+            tax
+            lda  CRY
+            tay
+            pla
+            jsr  putchxy
+
+            ; Move cursor
+            lda  CRX
+            cmp  #LSTSCOL
+            bne  nextCol
+
+            ; Move cursor to next line
+newline     lda  #0
+            sta  CRX
+            inc  CRY
+            bne  done         ; Equivalant to JMP
+
+nextCol     inc  CRX
+done        rts
+.)
+
+            ;-----------------------------------------
+            ; putchxy
+            ; Print a character to screen at position
+            ; specified
+            ;-----------------------------------------
             ; ACC - character to print
             ;   X - Column on simulated screen
             ;   Y - Row on simulated screen
-putch       .(
+            ;-----------------------------------------
+putchxy     .(
             pha               ; Push character to stack
             lda  #$00         ; Zero CHRADDR
             sta  CHRADDR      ; |
@@ -224,14 +257,9 @@ addDone1    dey
 mul8        ; TODO find better name
 
             ; Multiply by 8 to find location of character
-            ; TODO can I ASL/ROL directly on addresses?
             ldx  #3           ; Shift left 3 times to multiply by 8
-loop2       lda  CHRADDR      ; lsb
-            asl
-            sta  CHRADDR      ; lsb
-            lda  CHRADDR+1    ; msb
-            rol               ; Rotate with carry
-            sta  CHRADDR+1    ; msb
+loop2       asl  CHRADDR       ; lsb
+            rol  CHRADDR+1     ; msb
             dex
             bne  loop2
 
@@ -259,6 +287,8 @@ addDone3
 copyCh      lda  #00
             sta  CHDEFADDR+1
             pla
+            sec
+            sbc  #32
             sta  CHDEFADDR    ; Multiply character by 4
             asl  CHDEFADDR    ; |
             rol  CHDEFADDR+1  ; |
