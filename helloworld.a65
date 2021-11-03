@@ -1,0 +1,39 @@
+;=====================================================================
+; Print hello world to screen
+;---------------------------------------------------------------------
+; Requires 8k+ memory
+;---------------------------------------------------------------------
+; Copyright (C) 2021 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under an MIT licence.  Please see LICENCE.md for details.
+;=====================================================================
+
+
+            .byt  $00, $1C    ; Load address ($1C00 / 7168)
+
+            * = $1C00
+            jmp  main
+#include "sideprint.a65"
+
+main        jsr  SP_init
+
+            lda  #10
+            sta  CRX
+            lda  #05
+            sta  CRY
+            lda  #<helloStr
+            sta  STRADDR
+            lda  #>helloStr
+            sta  STRADDR+1
+            jsr  printStr
+            lda  #NLCHR
+            jsr  putch
+            lda  #<helloStr
+            sta  STRADDR
+            lda  #>helloStr
+            sta  STRADDR+1
+            jsr  printStr
+forever     jmp  forever
+            rts
+
+
+helloStr    .aasc "HELLO WORLD",0

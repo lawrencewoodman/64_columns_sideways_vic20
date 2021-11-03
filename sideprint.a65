@@ -38,31 +38,20 @@ COLADDR     = $07             ; 16-bit colour map address
 CHDEFADDR   = $09             ; 16-bit character def address
 CRX         = $0B             ; Cursor x position on simulated screen
 CRY         = $0C             ; Cursor y position on simulated screen
+STRADDR     = $0D             ; 16-bit address of a string to print
 
 
-            .byt  $00, $1C    ; Load address ($1C00 / 7168)
-
-            * = $1C00
-main        lda  #00          ; Init cursor to top left of screen
+            ;--------------------------------
+            ; SP_init
+            ; Init sideways printing screen
+            ;--------------------------------
+SP_init     lda  #00          ; Init cursor to top left of screen
             sta  CRX          ; |
             sta  CRY          ; /
-
             jsr  cfgScr       ; Configure screen
             jsr  initClr      ; Init the colour map
             jsr  initScr      ; Init the screen
             jsr  clrChMap     ; Clear character map
-
-            lda  #10
-            sta  CRX
-            lda  #05
-            sta  CRY
-            jsr  printAZ
-            lda  #NLCHR
-            jsr  putch
-            jsr  printAZ
-forever     jmp  forever
-            rts
-
 
             ; Configure screen
 cfgScr      lda  #RVTVORIGIN
@@ -164,21 +153,6 @@ loop        lda  #00
             inc  CHRADDR+1        ; /
 doneInc     lda  CHRADDR+1
             cmp  #$1C
-            bne  loop
-            rts
-.)
-
-
-            ; Print characters A-Z
-printAZ     .(
-            lda  #32
-loop        pha
-            jsr  putch
-            pla
-            tax
-            inx
-            txa
-            cmp  #96
             bne  loop
             rts
 .)
@@ -310,5 +284,29 @@ copyLoop    lda  (CHDEFADDR),y
             bne  copyLoop
             rts
 .)
+
+
+            ;----------------------------------------
+            ; printStr
+            ; Print string
+            ;----------------------------------------
+            ; STRADDR - Location of zero terminated
+            ;           string
+            ;----------------------------------------
+printStr   .(
+            ldy  #00
+loop        tya
+            pha
+            lda  (STRADDR), y
+            beq  done
+            jsr  putch
+            pla
+            tay
+            iny
+            jmp  loop
+done        pla
+            rts
+.)
+
 
 #include "fontdef.inc"        ; The font definitions

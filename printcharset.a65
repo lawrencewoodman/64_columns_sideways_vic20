@@ -1,0 +1,45 @@
+;=====================================================================
+; Print character set to screen
+;---------------------------------------------------------------------
+; Requires 8k+ memory
+;---------------------------------------------------------------------
+; Copyright (C) 2021 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under an MIT licence.  Please see LICENCE.md for details.
+;=====================================================================
+
+
+            .byt  $00, $1C    ; Load address ($1C00 / 7168)
+
+            * = $1C00
+            jmp  main
+#include "sideprint.a65"
+
+main        jsr  SP_init
+
+            lda  #10
+            sta  CRX
+            lda  #05
+            sta  CRY
+            jsr  printChSet
+            lda  #NLCHR
+            jsr  putch
+            jsr  printChSet
+forever     jmp  forever
+            rts
+
+
+            ; Print character set
+printChSet  .(
+            lda  #32
+loop        pha
+            jsr  putch
+            pla
+            tax
+            inx
+            txa
+            cmp  #96
+            bne  loop
+            rts
+.)
+
+
