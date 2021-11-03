@@ -50,11 +50,11 @@ main        jsr  cfgScr       ; Configure screen
             ldx  #02
             ldy  #00
             jsr  putch
-            lda  #00
+            lda  #02
             ldx  #03
             ldy  #00
             jsr  putch
-            lda  #00
+            lda  #03
             ldx  #10
             ldy  #01
             jsr  putch
@@ -62,8 +62,27 @@ main        jsr  cfgScr       ; Configure screen
             ldx  #63
             ldy  #07
             jsr  putch
+            jsr  printAZ
 forever     jmp  forever
             rts
+
+
+            ; Print characters A-Z
+printAZ     .(
+            ldx  #00
+
+loop        txa
+            pha
+            ldy  #01
+            jsr  putch
+            pla
+            tax
+            inx
+            txa
+            cmp  #63
+            bne  loop
+            rts
+.)
 
             ; Configure screen
 cfgScr      lda  #RVTVORIGIN
