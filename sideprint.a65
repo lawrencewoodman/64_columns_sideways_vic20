@@ -10,14 +10,13 @@
 
 ; Configuration
 SNUMCOL     = 64              ; Side number of text columns
-SNUMROW     = 16              ; Side number of text rows
+SNUMROW     = 14              ; Side number of text rows
 RVTVORIGIN  = 20              ; Vertical TV picture origin
 NLCHR       = $0A             ; Newline character
 
 ; Calculated dimensions
 RNUMCOL     = SNUMROW         ; Real number of text columns
-RNUMROW     = SNUMCOL/2       ; Real number of text rows
-SLENPX      = RNUMROW*4       ; Side number of pixels
+RNUMROW     = SNUMCOL/4       ; Real number of text rows
 LSTSCOL     = SNUMCOL-1       ; Last simulated column
 
 
@@ -39,6 +38,8 @@ CHDEFADDR   = $09             ; 16-bit character def address
 CRX         = $0B             ; Cursor x position on simulated screen
 CRY         = $0C             ; Cursor y position on simulated screen
 STRADDR     = $0D             ; 16-bit address of a string to print
+QUARTER     = $0F             ; Quarter in real character to put simulated
+                              ; character
 
 
             ;--------------------------------
@@ -56,13 +57,14 @@ SP_init     lda  #00          ; Init cursor to top left of screen
             ; Configure screen
 cfgScr      lda  #RVTVORIGIN
             sta  VICCR1       ; Set vertical TV origin
-            lda  #RNUMCOL
+            lda  #(128|RNUMCOL)
             sta  VICCR2       ; Set number of columns displayed
-            lda  #((RNUMROW*2))
+                              ; and screen address
+            lda  #((RNUMROW*2)+1)
             sta  VICCR3       ; Set number of rows displayed
-            ; TODO Consider putting character map before screen map in memory
-            lda  #(192|13)    ; Set Screen and character map addresses
-                              ; to $1000 and $1400
+                              ; and character size
+            lda  #(240|12)    ; Set screen and character map addresses
+                              ; to $1E00 and $1000
             sta  VICCR5
             rts
 
@@ -98,15 +100,15 @@ decLo       dec  COLADDR               ; lsb
 
             ; Fill screen map with characters needed
 initScr     .(
-            lda  #$0F         ; Init screen address to $1000
+            lda  #(RNUMCOL-1) ; Init screen address to $1E00
             sta  COLOFF       ; |   Store column offset
             sta  SCRADDR      ; |
-            lda  #$10         ; |
+            lda  #$1E         ; |
             sta  SCRADDR+1    ; /
             lda  #00          ; The character to output
             ldy  #00
 
-colLoop     ldx  #32            ; The number of rows
+colLoop     ldx  #RNUMROW       ; The number of rows
 rowLoop     sta  (SCRADDR), y   ; Store character in screen map
             clc
             adc  #01
@@ -115,7 +117,7 @@ rowLoop     sta  (SCRADDR), y   ; Store character in screen map
             ; Calc next row address
             clc
             lda  SCRADDR      ; lsb
-            adc  #$10
+            adc  #SNUMROW
             sta  SCRADDR      ; lsb
             bcc  addDone
             inc  SCRADDR+1    ; msb
@@ -127,10 +129,11 @@ addDone     pla
             pha
             dec  COLOFF       ; Move to next column / simulated row
             lda  COLOFF
-            cmp  #07
+            cmp  #$FF
             beq  done
             sta  SCRADDR      ; Set screen address to next column
-            lda  #$10         ; |
+            ; TODO work out what is going on here
+            lda  #$1E         ; |
             sta  SCRADDR+1    ; /
             pla
             jmp  colLoop
@@ -143,7 +146,7 @@ done        pla
 clrChMap    .(
             lda  #$00
             sta  CHRADDR
-            lda  #$14
+            lda  #$10
             sta  CHRADDR+1
             ldy  #00
 loop        lda  #00
@@ -152,7 +155,7 @@ loop        lda  #00
             bne  doneInc          ; |
             inc  CHRADDR+1        ; /
 doneInc     lda  CHRADDR+1
-            cmp  #$1C
+            cmp  #$1E
             bne  loop
             rts
 .)
@@ -211,12 +214,13 @@ putchxy     .(
             pha               ; Push column to stack
 
             ; Find location of simulated column pair
-findCol     lsr               ; Half the column
+findCol     lsr               ; Quarter the column
+            lsr               ; /
             sta  CHRADDR      ; lsb
 
             ; Find location of simulated row
 findRow     cpy  #00
-            beq  mul8
+            beq  mul16
             ; Add number of real rows to address
             clc
             lda  CHRADDR      ; lsb
@@ -228,41 +232,41 @@ addDone1    dey
             jmp  findRow
 
 
-mul8        ; TODO find better name
+mul16       ; TODO find better name
 
-            ; Multiply by 8 to find location of character
-            ldx  #3           ; Shift left 3 times to multiply by 8
-loop2       asl  CHRADDR       ; lsb
+            ; Multiply by 16 to find location of character
+            ; Shift left 4 times to multiply by 16
+            asl  CHRADDR       ; lsb
             rol  CHRADDR+1     ; msb
-            dex
-            bne  loop2
+            asl  CHRADDR       ; lsb
+            rol  CHRADDR+1     ; msb
+            asl  CHRADDR       ; lsb
+            rol  CHRADDR+1     ; msb
+            asl  CHRADDR       ; lsb
+            rol  CHRADDR+1     ; msb
 
-            ; Add $1400 as address of character map
+            ; Add $1000 as address of character map
             clc
             lda  CHRADDR+1    ; msb
-            adc  #$14
-            sta  CHRADDR+1    ; lsb
+            adc  #$10
+            sta  CHRADDR+1    ; msb
 
-            ; Find if odd/even simulated column
+
+            ; Find position in 16-bit character size
             pla               ; Pull column off stack
-            lsr
-            bcc copyCh        ; If even
+            and  #3           ; Look at right 2 bits
+            asl
+            asl
+            ora  CHRADDR
+            sta  CHRADDR
 
-            ; Odd number so add 4
-            clc
-            lda  CHRADDR      ; lsb
-            adc  #$04
-            sta  CHRADDR      ; lsb
-            bcc  addDone3
-            inc  CHRADDR+1    ; msb
-addDone3
 
             ; Copy the character to the screen
 copyCh      lda  #00
             sta  CHDEFADDR+1
             pla
             sec
-            sbc  #32
+            sbc  #32          ; Font definitions are from space onwards
             sta  CHDEFADDR    ; Multiply character by 4
             asl  CHDEFADDR    ; |
             rol  CHDEFADDR+1  ; |

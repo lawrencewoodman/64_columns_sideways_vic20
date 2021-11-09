@@ -8,22 +8,66 @@
 ;=====================================================================
 
 
-            .byt  $00, $1C    ; Load address ($1C00 / 7168)
+            .byt  $00, $24    ; Load address ($2400 / 9216)
 
-            * = $1C00
+            * = $2400
             jmp  main
 #include "sideprint.a65"
 
 main        jsr  SP_init
 
+            lda  #65
+            ldx  #00
+            ldy  #00
+            jsr  putchxy
+            lda  #66
+            ldx  #01
+            ldy  #01
+            jsr  putchxy
+            lda  #67
+            ldx  #02
+            ldy  #02
+            jsr  putchxy
+            lda  #68
+            ldx  #03
+            ldy  #03
+            jsr  putchxy
+            lda  #69
+            ldx  #04
+            ldy  #04
+            jsr  putchxy
+            lda  #70
+            ldx  #05
+            ldy  #05
+            jsr  putchxy
+
             lda  #10
             sta  CRX
-            lda  #05
+            lda  #06
             sta  CRY
             jsr  printChSet
-            lda  #NLCHR
-            jsr  putch
-            jsr  printChSet
+
+            lda  #71
+            ldx  #06
+            ldy  #09
+            jsr  putchxy
+            lda  #72
+            ldx  #07
+            ldy  #10
+            jsr  putchxy
+            lda  #73
+            ldx  #08
+            ldy  #11
+            jsr  putchxy
+            lda  #74
+            ldx  #09
+            ldy  #12
+            jsr  putchxy
+            lda  #75
+            ldx  #10
+            ldy  #13
+            jsr  putchxy
+
 forever     jmp  forever
             rts
 
@@ -41,5 +85,3 @@ loop        pha
             bne  loop
             rts
 .)
-
-
