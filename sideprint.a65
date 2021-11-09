@@ -313,4 +313,4 @@ done        pla
 .)
 
 
-#include "fontdef.inc"        ; The font definitions
+#include "fontdef.a65"        ; The font definitions
