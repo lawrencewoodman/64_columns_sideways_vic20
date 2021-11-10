@@ -45,8 +45,8 @@ CHDEFADDR   = $09             ; 16-bit character def address
 CRX         = $0B             ; Cursor x position on simulated screen
 CRY         = $0C             ; Cursor y position on simulated screen
 STRADDR     = $0D             ; 16-bit address of a string to print
-QUARTER     = $0F             ; Quarter in real character to put simulated
-                              ; character
+SFROM       = $0F             ; 16-bit scroll from address
+STO         = $12             ; 16-bit scroll to address
 
 
             ;--------------------------------
@@ -76,6 +76,7 @@ cfgScr      lda  #RVTVORIGIN
             rts
 
             ; Init the colour map to all a single colour
+            ; TODO could do this just by altering Y as big enough
 initClr     .(
             lda  #<COLMAPEND          ; End of colour map
             sta  COLADDR              ; |
@@ -106,6 +107,7 @@ decLo       dec  COLADDR               ; lsb
 
 
             ; Fill screen map with characters needed
+            ; TODO: just use y as big enough
 initScr     .(
             lda  #(RNUMCOL-1) ; Init screen address to SCRBASE
             sta  COLOFF       ; |   Store column offset
@@ -166,6 +168,42 @@ doneInc     lda  CHRADDR+1
             rts
 .)
 
+            ;-----------------------------------------
+            ; scrollup
+            ; Scroll the text up one line
+            ;-----------------------------------------
+scrollup    .(
+waitRaster  lda  #<(CHRMAPBASE+16*RNUMROW)   ; Set copy start locations
+            sta  SFROM                       ; |
+            lda  #00                         ; |
+            sta  STO                         ; |
+            lda  #>(CHRMAPBASE+16*RNUMROW)   ; |
+            sta  SFROM+1                     ; |
+            lda  #>CHRMAPBASE                ; |
+            sta  STO+1                       ; /
+            ldx  #(SNUMROW-1)   ; Number of pages to copy
+loop        ldy  #00
+pageLoop    lda  (SFROM), y
+            sta  (STO), y
+            iny
+            bne  pageLoop
+            inc  SFROM+1         ; Next page
+            inc  STO+1           ; /
+            dex
+            bne loop
+
+            ; Wipe last line
+            lda   #<(CHRMAPBASE+(16*RNUMROW*(RNUMCOL-1)))
+            sta   STO
+            lda   #>(CHRMAPBASE+(16*RNUMROW*(RNUMCOL-1)))
+            sta   STO+1
+            ldy   #$FF
+            lda   #00
+wipeLoop    sta   (STO),y
+            dey
+            bne   wipeLoop
+            rts
+.)
 
             ;-----------------------------------------
             ; putch
@@ -178,7 +216,8 @@ putch       .(
             cmp  #NLCHR
             beq  newline      ; If newline character
 
-printCh     pha
+            ; Print the character
+            pha
             lda  CRX
             tax
             lda  CRY
@@ -194,8 +233,14 @@ printCh     pha
             ; Move cursor to next line
 newline     lda  #0
             sta  CRX
+            lda  CRY
+            cmp  #(SNUMROW-1)
+            beq  scroll       ; Scroll up if on last line
             inc  CRY
             bne  done         ; Equivalant to JMP
+
+scroll      jsr  scrollup
+            jmp  done
 
 nextCol     inc  CRX
 done        rts

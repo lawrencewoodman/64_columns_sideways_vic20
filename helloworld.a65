@@ -32,6 +32,15 @@ main        jsr  SP_init
             lda  #>helloStr
             sta  STRADDR+1
             jsr  printStr
+            lda  #00
+            sta  CRX
+            lda  #13
+            sta  CRY
+            lda  #<helloStr
+            sta  STRADDR
+            lda  #>helloStr
+            sta  STRADDR+1
+            jsr  printStr
 forever     jmp  forever
             rts
 

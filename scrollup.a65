@@ -1,0 +1,60 @@
+;=====================================================================
+; Scroll messages up the screen
+;---------------------------------------------------------------------
+; Requires 8k+ memory
+;---------------------------------------------------------------------
+; Copyright (C) 2021 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under an MIT licence.  Please see LICENCE.md for details.
+;=====================================================================
+
+
+            .byt  $00, $24    ; Load address ($2400 / 9216)
+
+            * = $2400
+            jmp  main
+#include "sideprint.a65"
+
+main        .(
+            jsr  SP_init
+
+forever     ldy  #0
+loop        lda  msgs, y
+            sta  STRADDR
+            iny
+            lda  msgs, y
+            sta  STRADDR+1
+            iny
+            tya
+            pha
+            jsr  printStr
+            pla
+            tay
+            cmp  #(11*2)
+            bne  loop
+            jmp  forever
+.)
+
+delay       .(
+            ldx  #$E0
+loop1       ldy  #$FF
+loop2       dey
+            bne  loop2
+            dex
+            bne  loop1
+            rts
+.)
+
+msgs     .word msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8
+         .word msg9, msg10, msg11
+
+msg1     .aasc "64 COLUMNS (SIDEWAYS) ON THE COMMODORE VIC-20!",NLCHR,0
+msg2     .byt  NLCHR, 0
+msg3     .aasc "THE ALPHABET:",0
+msg4     .aasc "  ABCDEFGHIJKLMNOPQRSTUVWXYZ",NLCHR,0
+msg5     .aasc "THE NUMBERS:",0
+msg6     .aasc "   0123456789",NLCHR,0
+msg7     .aasc "THE REST:",0
+msg8     .aasc "      !",34,"#$%&'()*+,-./:;<=>?@[\]^_",NLCHR,0
+msg9     .byt  NLCHR, 0
+msg10    .aasc "WHERE THERE'S A WILL THERE'S A WAY!",NLCHR,0
+msg11    .byt  NLCHR, 0
