@@ -9,7 +9,9 @@
 ;=====================================================================
 
 ; Configuration
+; Recommended text modes 64x14, 56x16, 52x16
 SNUMCOL     = 64              ; Side number of text columns
+                              ; Must be divisible by 4
 SNUMROW     = 14              ; Side number of text rows
 RVTVORIGIN  = 20              ; Vertical TV picture origin
 NLCHR       = $0A             ; Newline character
@@ -26,7 +28,12 @@ VICCR2      = $9002           ; Number of columns, part of screen address
 VICCR3      = $9003           ; Number of rows, raster location, char size
 VICCR5      = $9005           ; Screen map and character map address
 
-; TODO Constants for character map, screen address, etc
+; Display memory location constants
+CHRMAPBASE  = $1000           ; Base address of character map
+SCRBASE     = $1E00           ; Base address of screen
+COLMAPBASE  = $9400           ; Base address of colour map
+COLMAPEND   = (COLMAPBASE-1+(RNUMROW*RNUMCOL))  ; End of colour map
+
 
 ; Zero Page Variable Locations
 CHRADDR     = $01             ; 16-bit character map address
@@ -70,12 +77,12 @@ cfgScr      lda  #RVTVORIGIN
 
             ; Init the colour map to all a single colour
 initClr     .(
-            lda  #<((16*32)+$93FF)    ; End of colour map beginning $9400
+            lda  #<COLMAPEND          ; End of colour map
             sta  COLADDR              ; |
-            lda  #>((16*32)+$93FF)    ; |
+            lda  #>COLMAPEND          ; |
             sta  COLADDR+1            ; /
-            ldy  #00
 
+            ldy  #00
 loop        lda  #$00                 ; Black forground colour
             sta  (COLADDR),y          ; Init colour map
 
@@ -86,24 +93,24 @@ loop        lda  #$00                 ; Black forground colour
 decLo       dec  COLADDR               ; lsb
 
             lda  COLADDR+1
-            cmp  #>$9400
+            cmp  #>COLMAPBASE
             bne  loop
             lda  COLADDR
             bne  loop
 
             ; TODO Find neater way of doing whole loop
             lda  #$00         ; Black foreground colour
-            sta  $9400        ; Init colour map first location
+            sta  COLMAPBASE   ; Init colour map first location
             rts
 .)
 
 
             ; Fill screen map with characters needed
 initScr     .(
-            lda  #(RNUMCOL-1) ; Init screen address to $1E00
+            lda  #(RNUMCOL-1) ; Init screen address to SCRBASE
             sta  COLOFF       ; |   Store column offset
             sta  SCRADDR      ; |
-            lda  #$1E         ; |
+            lda  #>SCRBASE    ; |
             sta  SCRADDR+1    ; /
             lda  #00          ; The character to output
             ldy  #00
@@ -132,8 +139,7 @@ addDone     pla
             cmp  #$FF
             beq  done
             sta  SCRADDR      ; Set screen address to next column
-            ; TODO work out what is going on here
-            lda  #$1E         ; |
+            lda  #>SCRBASE    ; |
             sta  SCRADDR+1    ; /
             pla
             jmp  colLoop
@@ -146,7 +152,7 @@ done        pla
 clrChMap    .(
             lda  #$00
             sta  CHRADDR
-            lda  #$10
+            lda  #>CHRMAPBASE
             sta  CHRADDR+1
             ldy  #00
 loop        lda  #00
@@ -155,7 +161,7 @@ loop        lda  #00
             bne  doneInc          ; |
             inc  CHRADDR+1        ; /
 doneInc     lda  CHRADDR+1
-            cmp  #$1E
+            cmp  #>SCRBASE
             bne  loop
             rts
 .)
@@ -248,7 +254,7 @@ mul16       ; TODO find better name
             ; Add $1000 as address of character map
             clc
             lda  CHRADDR+1    ; msb
-            adc  #$10
+            adc  #>CHRMAPBASE
             sta  CHRADDR+1    ; msb
 
 

@@ -68,6 +68,11 @@ main        jsr  SP_init
             ldy  #13
             jsr  putchxy
 
+            lda  #80
+            ldx  #63
+            ldy  #13
+            jsr  putchxy
+
 forever     jmp  forever
             rts
 
