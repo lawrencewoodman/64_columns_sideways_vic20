@@ -250,13 +250,17 @@ done        rts
             ; putchxy
             ; Print a character to screen at position
             ; specified
+            ; This will print NL and ASCII 32-95
             ;-----------------------------------------
             ; ACC - character to print
             ;   X - Column on simulated screen
             ;   Y - Row on simulated screen
             ;-----------------------------------------
 putchxy     .(
-            pha               ; Push character to stack
+            cmp  #95
+            bcc  storeCh      ; If <= 95
+            and  #$5F         ; Drop bit 5 (upcase)
+storeCh     pha               ; Push character to stack
             lda  #$00         ; Zero CHRADDR
             sta  CHRADDR      ; |
             lda  #$00         ; |
