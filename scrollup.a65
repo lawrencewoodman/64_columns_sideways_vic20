@@ -10,6 +10,7 @@
 FDX         = $CB             ; Matrix key coordinate of key press
 
             .byt  $00, $24    ; Load address ($2400 / 9216)
+; TODO change this to $2000?
 
             * = $2400
             jmp  main
