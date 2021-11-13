@@ -337,21 +337,23 @@ copyLoop    lda  (CHDEFADDR),y
             ; Print string
             ;----------------------------------------
             ; STRADDR - Location of zero terminated
-            ;           string
+            ;           string.  This location is
+            ;           left at end of string after
+            ;           function returns.
+            ;----------------------------------------
+            ; TODO Rename printstr
             ;----------------------------------------
 printStr   .(
             ldy  #00
-loop        tya
-            pha
-            lda  (STRADDR), y
+loop        lda  (STRADDR), y
             beq  done
             jsr  putch
-            pla
-            tay
-            iny
+            inc  STRADDR      ; Increment STRADDR
+            bne  incDone      ; |
+            inc  STRADDR+1    ; /
+incDone
             jmp  loop
-done        pla
-            rts
+done        rts
 .)
 
 
