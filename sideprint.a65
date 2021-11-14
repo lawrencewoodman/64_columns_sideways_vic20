@@ -153,34 +153,44 @@ doneInc     lda  CHRADDR+1
             rts
 .)
 
+
             ;-----------------------------------------
             ; scrollup
             ; Scroll the text up one line
             ;-----------------------------------------
-            ; TODO Fix problem with 56x16 and 52x16
-            ; TODO ok with 56x14 and 52x14
+            ; TODO Fix problem with 56x16
+            ; TODO ok with 64x14, 56x14 and 52x16
 scrollup    .(
-waitRaster  lda  #<(CHRMAPBASE+16*RNUMROW)   ; Set copy start locations
+            lda  #<(CHRMAPBASE+16*RNUMROW)   ; Set copy start locations
             sta  SFROM                       ; |
-            lda  #00                         ; |
-            sta  STO                         ; |
             lda  #>(CHRMAPBASE+16*RNUMROW)   ; |
             sta  SFROM+1                     ; |
+            lda  #<CHRMAPBASE                ; |
+            sta  STO                         ; |
             lda  #>CHRMAPBASE                ; |
             sta  STO+1                       ; /
-            ldx  #(SNUMROW-1)    ; Number of pages to copy
-loop        ldy  #00
-pageLoop    lda  (SFROM), y
-            sta  (STO), y
-            iny
-            bne  pageLoop
-            inc  SFROM+1         ; Next page
-            inc  STO+1           ; /
+
+            ldy  #0
+            ldx  #>(16*RNUMROW*(RNUMCOL-1))  ; msb size of move
+            beq  partPage
+pageLoop    lda  (SFROM),y                   ; Copy a page
+            sta  (STO),y                     ; |
+            iny                              ; |
+            bne  pageLoop                    ; /
+            inc  SFROM+1                     ; Next page
+            inc  STO+1                       ; /
             dex
-            bne loop
+            bne  pageLoop
+partPage    ldx  #<(16*RNUMROW*(RNUMCOL-1))
+            beq  wipe
+partLoop    lda  (SFROM),y                   ; Copy remainder
+            sta  (STO),y                     ; |
+            iny                              ; |
+            dex                              ; |
+            bne  partLoop                    ; /
 
             ; Wipe last line
-            lda   #<(CHRMAPBASE+(16*RNUMROW*(RNUMCOL-1)))
+wipe        lda   #<(CHRMAPBASE+(16*RNUMROW*(RNUMCOL-1)))
             sta   STO
             lda   #>(CHRMAPBASE+(16*RNUMROW*(RNUMCOL-1)))
             sta   STO+1
