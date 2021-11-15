@@ -24,14 +24,14 @@ main        jsr  SP_init
             sta  STRADDR
             lda  #>helloStr
             sta  STRADDR+1
-            jsr  printStr
+            jsr  puts
             lda  #NLCHR
             jsr  putch
             lda  #<helloStr
             sta  STRADDR
             lda  #>helloStr
             sta  STRADDR+1
-            jsr  printStr
+            jsr  puts
             lda  #00
             sta  CRX
             lda  #13
@@ -40,7 +40,7 @@ main        jsr  SP_init
             sta  STRADDR
             lda  #>helloStr
             sta  STRADDR+1
-            jsr  printStr
+            jsr  puts
 forever     jmp  forever
             rts
 

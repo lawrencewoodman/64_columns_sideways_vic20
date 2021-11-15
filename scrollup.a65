@@ -27,7 +27,7 @@ loop        lda  msgs, y
             iny
             tya
             pha
-            jsr  printStr
+            jsr  puts
             jsr  delay
             pla
             tay

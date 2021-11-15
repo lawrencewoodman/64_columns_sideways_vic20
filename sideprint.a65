@@ -343,7 +343,7 @@ copyLoop    lda  (CHDEFADDR),y
 
 
             ;----------------------------------------
-            ; printStr
+            ; puts
             ; Print string
             ;----------------------------------------
             ; STRADDR - Location of zero terminated
@@ -351,9 +351,7 @@ copyLoop    lda  (CHDEFADDR),y
             ;           left at end of string after
             ;           function returns.
             ;----------------------------------------
-            ; TODO Rename printstr
-            ;----------------------------------------
-printStr   .(
+puts        .(
             ldy  #00
 loop        lda  (STRADDR), y
             beq  done
