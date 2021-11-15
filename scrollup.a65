@@ -18,21 +18,11 @@ FDX         = $CB             ; Matrix key coordinate of key press
 main        .(
             jsr  SP_init
 
-forever     ldy  #0
-loop        lda  msgs, y
+forever     lda  #<msg
             sta  STRADDR
-            iny
-            lda  msgs, y
+            lda  #>msg
             sta  STRADDR+1
-            iny
-            tya
-            pha
-            jsr  puts
-            jsr  delay
-            pla
-            tay
-            cmp  #(18*2)
-            bne  loop
+            jsr  scrollText
             jmp  forever
 .)
 
@@ -51,25 +41,38 @@ loop2       dey
             rts
 .)
 
-msgs     .word msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8
-         .word msg9, msg10, msg11, msg12, msg13, msg14, msg15
-         .word msg16, msg17, msg18
 
-msg1     .aasc "64 columns (sideways) on the Commodore VIC-20!",NLCHR,0
-msg2     .byt  NLCHR, 0
-msg3     .aasc "Supports Newline (software definable) and ASCII 32-95",NLCHR,0
-msg4     .byt  NLCHR, 0
-msg5     .aasc "Fonts are 4*8 with glyph using 3*7",NLCHR,0
-msg6     .byt  NLCHR, 0
-msg7     .aasc "Also supports text modes more suitable for NTSC:",NLCHR,0
-msg8     .aasc "  56*16 and 52*16",NLCHR,0
-msg9     .byt  NLCHR, 0
-msg10    .aasc "The alphabet:",NLCHR,0
-msg11    .aasc "  abcdefghijklmnopqrstuvwxyz",NLCHR,0
-msg12    .aasc "The numbers:",NLCHR,0
-msg13    .aasc "  0123456789",NLCHR,0
-msg14    .aasc "The rest:",NLCHR,0
-msg15     .aasc "  !",34,"#$%&'()*+,-./:;<=>?@[\]^_",NLCHR,0
-msg16     .byt  NLCHR, 0
-msg17    .aasc "Where there's a will there's a way!",NLCHR,0
-msg18    .byt  NLCHR, 0
+scrollText  .(
+loop        ldy  #00
+            lda  (STRADDR), y
+            beq  done
+            jsr  putch
+            lda  CRX
+            bne  notFirstCol  ; If in first column
+            jsr  delay
+notFirstCol inc  STRADDR      ; Increment STRADDR
+            bne  incDone      ; |
+            inc  STRADDR+1    ; /
+incDone
+            jmp  loop
+done        rts
+.)
+
+msg         .aasc "64 columns (sideways) on the Commodore VIC-20!",NLCHR
+            .aasc NLCHR
+            .aasc "Supports Newline (software definable) and ASCII 32-95",NLCHR
+            .aasc NLCHR
+            .aasc "Fonts are 4*8 with glyph using 3*7",NLCHR
+            .aasc NLCHR
+            .aasc "Also supports text modes more suitable for NTSC:",NLCHR
+            .aasc "  56*16 and 52*16",NLCHR
+            .aasc NLCHR
+            .aasc "The alphabet:",NLCHR
+            .aasc "  abcdefghijklmnopqrstuvwxyz",NLCHR
+            .aasc "The numbers:",NLCHR
+            .aasc "  0123456789",NLCHR
+            .aasc "The rest:",NLCHR
+            .aasc "  !",34,"#$%&'()*+,-./:;<=>?@[\]^_",NLCHR
+            .aasc  NLCHR
+            .aasc "Where there's a will there's a way!",NLCHR
+            .aasc  NLCHR,0
