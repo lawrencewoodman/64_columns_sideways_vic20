@@ -9,10 +9,9 @@
 
 FDX         = $CB             ; Matrix key coordinate of key press
 
-            .byt  $00, $24    ; Load address ($2400 / 9216)
-; TODO change this to $2000?
+            .byt  $00, $20    ; Load address ($2000 / 8192)
 
-            * = $2400
+            * = $2000
             jmp  main
 #include "sideprint.a65"
 
