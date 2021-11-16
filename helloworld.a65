@@ -25,7 +25,7 @@ main        jsr  SP_init
             lda  #>helloStr
             sta  STRADDR+1
             jsr  puts
-            lda  #NLCHR
+            lda  #NL
             jsr  putch
             lda  #<helloStr
             sta  STRADDR

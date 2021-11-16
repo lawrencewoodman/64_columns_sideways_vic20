@@ -14,7 +14,7 @@ SNUMCOL     = 64              ; Side number of text columns
                               ; Must be divisible by 4
 SNUMROW     = 14              ; Side number of text rows
 RVTVORIGIN  = 20              ; Vertical TV picture origin
-NLCHR       = $0A             ; Newline character
+NL          = $0A             ; Newline character
 
 ; Calculated dimensions
 RNUMCOL     = SNUMROW         ; Real number of text columns
@@ -210,7 +210,7 @@ wipeLoop    sta   (STO),y
             ; ACC - character to print
             ;-----------------------------------------
 putch       .(
-            cmp  #NLCHR
+            cmp  #NL
             beq  newline      ; If newline character
 
             ; Print the character
