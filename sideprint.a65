@@ -9,7 +9,8 @@
 ;=====================================================================
 
 ; Configuration
-; Recommended text modes 64x14, 56x16, 52x16
+; Recommended text modes 64x14, 56x14, 52x16
+; TODO Fix scrollup to enable 56x16
 SNUMCOL     = 64              ; Side number of text columns
                               ; Must be divisible by 4
 SNUMROW     = 14              ; Side number of text rows
@@ -159,7 +160,7 @@ doneInc     lda  CHRADDR+1
             ; Scroll the text up one line
             ;-----------------------------------------
             ; TODO Fix problem with 56x16
-            ; TODO ok with 64x14, 56x14 and 52x16
+            ;-----------------------------------------
 scrollup    .(
             lda  #<(CHRMAPBASE+16*RNUMROW)   ; Set copy start locations
             sta  SFROM                       ; |
