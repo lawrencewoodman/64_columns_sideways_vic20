@@ -60,17 +60,19 @@ done        rts
 
 msg         .aasc "64 columns (sideways) on the Commodore VIC-20!",NL
             .aasc NL
-            .aasc "Supports Newline (software definable) and ASCII 32-95",NL
+            .aasc "Supports Newline (software definable) and ASCII 32-95.  "
+            .aasc "Fonts are 4*8 with glyphs using 3*7.  "
+            .aasc "The fonts are different to common 40 column fonts because "
+            .aasc "the pixels aren't square and therefore they don't look "
+            .aasc "right when displayed on their side.",NL
             .aasc NL
-            .aasc "Fonts are 4*8 with glyph using 3*7",NL
+            .aasc "The standard text mode is 64*14 but it also supports "
+            .aasc "text modes more suitable for NTSC:",NL
+            .aasc "  56*14 and 52*16",NL
             .aasc NL
-            .aasc "Also supports text modes more suitable for NTSC:",NL
-            .aasc "  56*16 and 52*16",NL
-            .aasc NL
-            .aasc "The alphabet:",NL
-            .aasc "  abcdefghijklmnopqrstuvwxyz",NL
-            .aasc "The numbers:",NL
-            .aasc "  0123456789",NL
+            .aasc "The alphabet:                  The numbers:",NL
+            .aasc "  abcdefghijklmnopqrstuvwxyz   "
+            .aasc "  0123456789",NL,0
             .aasc "The rest:",NL
             .aasc "  !",34,"#$%&'()*+,-./:;<=>?@[\]^_",NL
             .aasc  NL
