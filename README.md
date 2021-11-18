@@ -4,15 +4,6 @@
 Demonstration of a new 64 column (sideways) text mode for the Commodore VIC-20.  Please see the article [64 Columns (Sideways) on the Commodore VIC-20](https://techtinkering.com/articles/64-columns-sideways-on-the-commodore-vic-20/).
 
 
-## Video
-
-The following video shows the 64 column text mode in action.
-
-<div class="youtube-wrapper">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/L3VilLfuehI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</div>
-
-
 ## The Files
 
 The files are all written for the [XA](https://www.floodgap.com/retrotech/xa/) assembler.
