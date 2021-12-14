@@ -18,5 +18,8 @@ runprintcharset: printcharset.prg
 runscrollup: scrollup.prg
 	xvic scrollup.prg
 
+cptobin: helloworld.prg printcharset.prg scrollup.prg
+	cp  helloworld.prg printcharset.prg scrollup.prg bin/
+
 clean:
 	rm helloworld.prg printcharset.prg scrollup.prg
